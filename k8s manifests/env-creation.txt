@@ -1,0 +1,25 @@
+#This doc is not holistically complete, is not meant to be turnkey and/or may not follow best practices across the board. They're general notes. Everything is consolidated, i.e. the path of least resistance.
+
+
+
+k create ns ingress-perf-testing
+
+k label node/aks-nodepool1-23701866-vmss000003 pod-affinity=yezzir
+k label node/aks-nodepool1-23701866-vmss000005 pod-affinity=yezzir
+
+
+
+helm install nginx-affinity-controller nginx-stable/nginx-ingress \
+  --set release.namespace=ingress-perf-testing \
+  --set controller.replicaCount=2 \
+  --set controller.ingressClass=nginx-affinity-class
+
+  helm install nginx-antiaffinity nginx-stable/nginx-ingress \
+  --set release.namespace=ingress-perf-testing \
+  --set controller.replicaCount=2 \
+  --set controller.ingressClass=nginx-anti-affinity-class
+
+Update nodeSelectors for the 
+
+
+

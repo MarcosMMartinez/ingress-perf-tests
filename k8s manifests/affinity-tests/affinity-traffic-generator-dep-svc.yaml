@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: affinity-traffic-generator
+  namespace: ingress-perf-testing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: affinity-traffic-generator
+  template:
+    metadata:
+      labels:
+        app: affinity-traffic-generator
+    spec:
+      containers:
+      - name: dummy
+        image: markitoacreastus.azurecr.io/ingressperftests:latest
+        ports:
+        - containerPort: 80
+      nodeSelector:
+        pod-affinity: "yezzir"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: affinity-traffic-generator
+  namespace: ingress-perf-testing
+spec:
+  type: LoadBalancer
+  selector:
+    app: affinity-traffic-generator
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

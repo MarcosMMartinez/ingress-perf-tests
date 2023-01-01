@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: affinity-dummy-clients
+  namespace: ingress-perf-testing
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: affinity-dummies
+  template:
+    metadata:
+      labels:
+        app: affinity-dummies
+    spec:
+      containers:
+      - name: dummy
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+      nodeSelector:
+        pod-affinity: "yezzir"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-affinity-dummy-clients
+  namespace: ingress-perf-testing
+spec:
+  type: ClusterIP
+  selector:
+    app: affinity-dummies
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

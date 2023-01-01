@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginxingress-affinity-dummies
+  namespace: ingress-perf-testing
+  #annotations:
+    #nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx-affinity-class
+  rules:
+    - host: affinity
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service: 
+                name: service-affinity-dummy-clients
+                port:
+                  number: 80
+            path: /
+

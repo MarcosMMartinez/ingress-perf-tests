@@ -1,0 +1,156 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    meta.helm.sh/release-name: nginx-antiaffinity
+    meta.helm.sh/release-namespace: ingress-perf-testing
+  creationTimestamp: "2022-12-26T00:06:07Z"
+  generation: 1
+  labels:
+    app.kubernetes.io/instance: nginx-antiaffinity
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nginx-antiaffinity-nginx-ingress
+    helm.sh/chart: nginx-ingress-0.15.2
+  name: nginx-antiaffinity-nginx-ingress
+  namespace: ingress-perf-testing
+  resourceVersion: "20741195"
+  uid: 78d97592-86d9-4999-9944-16e6e204d72e
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 2
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: nginx-antiaffinity-nginx-ingress
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "9113"
+        prometheus.io/scheme: http
+        prometheus.io/scrape: "true"
+      creationTimestamp: null
+      labels:
+        app: nginx-antiaffinity-nginx-ingress
+    spec:
+      automountServiceAccountToken: true
+      containers:
+      - args:
+        - -nginx-plus=false
+        - -nginx-reload-timeout=60000
+        - -enable-app-protect=false
+        - -enable-app-protect-dos=false
+        - -nginx-configmaps=$(POD_NAMESPACE)/nginx-antiaffinity-nginx-ingress
+        - -default-server-tls-secret=$(POD_NAMESPACE)/nginx-antiaffinity-nginx-ingress-default-server-tls
+        - -ingress-class=nginx-anti-affinity-class
+        - -health-status=false
+        - -health-status-uri=/nginx-health
+        - -nginx-debug=false
+        - -v=1
+        - -nginx-status=true
+        - -nginx-status-port=8080
+        - -nginx-status-allow-cidrs=127.0.0.1
+        - -report-ingress-status
+        - -external-service=nginx-antiaffinity-nginx-ingress
+        - -enable-leader-election=true
+        - -leader-election-lock-name=nginx-antiaffinity-nginx-ingress-leader-election
+        - -enable-prometheus-metrics=true
+        - -prometheus-metrics-listen-port=9113
+        - -prometheus-tls-secret=
+        - -enable-custom-resources=true
+        - -enable-snippets=false
+        - -include-year=false
+        - -disable-ipv6=false
+        - -enable-tls-passthrough=false
+        - -enable-preview-policies=false
+        - -enable-cert-manager=false
+        - -enable-oidc=false
+        - -enable-external-dns=false
+        - -ready-status=true
+        - -ready-status-port=8081
+        - -enable-latency-metrics=false
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        image: nginx/nginx-ingress:2.4.2
+        imagePullPolicy: IfNotPresent
+        name: nginx-antiaffinity-nginx-ingress
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        - containerPort: 443
+          name: https
+          protocol: TCP
+        - containerPort: 9113
+          name: prometheus
+          protocol: TCP
+        - containerPort: 8081
+          name: readiness-port
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /nginx-ready
+            port: readiness-port
+            scheme: HTTP
+          periodSeconds: 1
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: true
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 101
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        kubernetes.io/hostname: aks-nodepool1-23701866-vmss000001
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: nginx-antiaffinity-nginx-ingress
+      serviceAccountName: nginx-antiaffinity-nginx-ingress
+      terminationGracePeriodSeconds: 30
+status:
+  availableReplicas: 2
+  conditions:
+  - lastTransitionTime: "2022-12-26T00:06:09Z"
+    lastUpdateTime: "2022-12-26T00:06:09Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  - lastTransitionTime: "2022-12-26T00:06:07Z"
+    lastUpdateTime: "2022-12-26T00:06:09Z"
+    message: ReplicaSet "nginx-antiaffinity-nginx-ingress-588d558f6c" has successfully
+      progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  observedGeneration: 1
+  readyReplicas: 2
+  replicas: 2
+  updatedReplicas: 2

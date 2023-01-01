@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anti-affinity-traffic-generator
+  namespace: ingress-perf-testing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: anti-affinity-traffic-generator
+  template:
+    metadata:
+      labels:
+        app: anti-affinity-traffic-generator
+    spec:
+      containers:
+      - name: dummy
+        image: markitoacreastus.azurecr.io/ingressperftests:latest
+        ports:
+        - containerPort: 80
+      nodeSelector:
+        kubernetes.io/hostname: "aks-nodepool1-23701866-vmss000002"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: anti-affinity-traffic-generator
+  namespace: ingress-perf-testing
+spec:
+  type: LoadBalancer
+  selector:
+    app: anti-affinity-traffic-generator
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80

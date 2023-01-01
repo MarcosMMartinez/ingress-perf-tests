@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    meta.helm.sh/release-name: nginx-antiaffinity
+    meta.helm.sh/release-namespace: ingress-perf-testing
+  creationTimestamp: "2022-12-26T00:06:07Z"
+  finalizers:
+  - service.kubernetes.io/load-balancer-cleanup
+  labels:
+    app.kubernetes.io/instance: nginx-antiaffinity
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nginx-antiaffinity-nginx-ingress
+    helm.sh/chart: nginx-ingress-0.15.2
+  name: nginx-antiaffinity-nginx-ingress
+  namespace: ingress-perf-testing
+  resourceVersion: "20741238"
+  uid: cc99f6ea-c27a-4dc7-a8cd-763b7f55ea4f
+spec:
+  allocateLoadBalancerNodePorts: true
+  clusterIP: 10.0.223.182
+  clusterIPs:
+  - 10.0.223.182
+  externalTrafficPolicy: Local
+  healthCheckNodePort: 30318
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http
+    nodePort: 32157
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  - name: https
+    nodePort: 31821
+    port: 443
+    protocol: TCP
+    targetPort: 443
+  selector:
+    app: nginx-antiaffinity-nginx-ingress
+  sessionAffinity: None
+  type: LoadBalancer
+status:
+  loadBalancer:
+    ingress:
+    - ip: 20.228.105.42
