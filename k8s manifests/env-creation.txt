@@ -19,7 +19,7 @@ helm install nginx-affinity-controller nginx-stable/nginx-ingress \
   --set controller.replicaCount=2 \
   --set controller.ingressClass=nginx-anti-affinity-class
 
-Update nodeSelectors for the 
+Update nodeSelectors for the nginx deployments - one per the node label at the top, anti-affinity one to a lone node host name.
 
 
 
