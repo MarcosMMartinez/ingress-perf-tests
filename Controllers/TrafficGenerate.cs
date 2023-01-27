@@ -1,7 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
-using System.Net;
 
 namespace ingress_perf_tests.Controllers
 {
@@ -9,87 +7,90 @@ namespace ingress_perf_tests.Controllers
     [ApiController]
     public class TrafficGenerate : ControllerBase
     {
+        readonly string agicIp = "*.*.*.196";
+        readonly string nginxAffinityIp = "*.*.*.208";
+        readonly string nginxAntiAffinityIp = "*.*.*.138";
 
+        readonly string affinityHost = "affinity";
+        readonly string antiaffinityHost = "antiaffinity";
+        readonly int numberRequests = 100;
+        readonly bool isParallel = true;
 
-    readonly string agicIp = "*.*.*.196";
-    readonly string nginxAffinityIp = "*.*.*.208";
-    readonly string nginxAntiAffinityIp = "*.*.*.138";
-
-    readonly string affinityHost = "affinity";
-    readonly string antiaffinityHost = "antiaffinity";
-
-    readonly TimeSpan[] latencies = new TimeSpan[100];
-
-
-    [HttpGet]
-        public string Get()
+        [HttpGet]
+        public async Task<string> Get()
         {
             string output = "";
             //warmup
-            RunLatencyTests(agicIp, affinityHost);
+            await RunLatencyTests(agicIp, affinityHost);
             //end warmup
 
-            RunLatencyTests(agicIp, affinityHost);
-            TimeSpan agicAffinityAverage = averageLatency(latencies);
-            output += "AGIC, Header:" + affinityHost + ", Average Latency (ms): " + agicAffinityAverage.TotalMilliseconds + "\n";             
-            
-            //warmup
-            RunLatencyTests(nginxAffinityIp, affinityHost);
-            //end warmup
-
-            RunLatencyTests(nginxAffinityIp, affinityHost);
-            TimeSpan nginxAffinityAverage = averageLatency(latencies);
-            output += "Nginx, Header:" + affinityHost + ", Average Latency (ms): " + nginxAffinityAverage.TotalMilliseconds + "\n";
+            double agicAffinityAverage = await RunLatencyTests(agicIp, affinityHost);
+            output += "AGIC, Header:" + affinityHost + ", Average Latency (ms): " + agicAffinityAverage + "\n";
 
             //warmup
-            RunLatencyTests(agicIp, antiaffinityHost);
+            await RunLatencyTests(nginxAffinityIp, affinityHost);
             //end warmup
 
-            RunLatencyTests(agicIp, antiaffinityHost);
-            TimeSpan agicAntiAffinityAverage = averageLatency(latencies);
-            output += "AGIC, Header:" + antiaffinityHost + ", Average Latency (ms): " + agicAntiAffinityAverage.TotalMilliseconds + "\n";
+            double nginxAffinityAverage = await RunLatencyTests(nginxAffinityIp, affinityHost);
+            output += "Nginx, Header:" + affinityHost + ", Average Latency (ms): " + nginxAffinityAverage + "\n";
 
             //warmup
-            RunLatencyTests(nginxAntiAffinityIp, antiaffinityHost);
+            await RunLatencyTests(agicIp, antiaffinityHost);
             //end warmup
 
-            RunLatencyTests(nginxAntiAffinityIp, antiaffinityHost);
-            TimeSpan nginxAntiAffinityAverage = averageLatency(latencies);
-            output += "Nginx, Header:" + antiaffinityHost + ", Average Latency (ms): " + nginxAntiAffinityAverage.TotalMilliseconds + "\n";
-            
+            double agicAntiAffinityAverage = await RunLatencyTests(agicIp, antiaffinityHost);
+            output += "AGIC, Header:" + antiaffinityHost + ", Average Latency (ms): " + agicAntiAffinityAverage + "\n";
+
+            //warmup
+            await RunLatencyTests(nginxAntiAffinityIp, antiaffinityHost);
+            //end warmup
+
+            double nginxAntiAffinityAverage = await RunLatencyTests(nginxAntiAffinityIp, antiaffinityHost);
+            output += "Nginx, Header:" + antiaffinityHost + ", Average Latency (ms): " + nginxAntiAffinityAverage + "\n";
+
             return output;
         }
 
-        void RunLatencyTests(string ip, string hostHeader)
+
+        //Returns average latency
+        async Task<double> RunLatencyTests(string ip, string hostHeader)
         {
-            for (int i = 0; i < latencies.Length; i++)
+            List<double> elapsedTimes = new();
+            HttpClient client = new();
+            client.DefaultRequestHeaders.Add("Host", hostHeader);
+
+            ParallelOptions parallelOptions = new();
+
+            if (this.isParallel)
             {
-                latencies[i] = RunLatencyTestResult(ip, hostHeader);
+                parallelOptions.MaxDegreeOfParallelism = numberRequests;
             }
-        }
-
-        TimeSpan averageLatency(TimeSpan[] latencies)
-        {
-            TimeSpan ts = new TimeSpan();
-            for (int i = 0; i < latencies.Length; i++)
+            else
             {
-                ts += latencies[i];
+                parallelOptions.MaxDegreeOfParallelism = 1;
             }
 
-            return ts / latencies.Length;
-        }
-
-        TimeSpan RunLatencyTestResult(string ip, string hostHeader)
-        {
-            using (HttpClient client = new HttpClient())
+            await Parallel.ForEachAsync(Enumerable.Range(1, numberRequests), parallelOptions, async (i, token) =>
             {
-                Stopwatch stopwatch = new Stopwatch();
-                client.DefaultRequestHeaders.Add("Host", hostHeader);
-                stopwatch.Start();
-                HttpResponseMessage response = client.GetAsync("http://" + ip).Result;
-                stopwatch.Stop();
-                //Console.WriteLine(ip + ", Header:" + hostHeader + ", Latency: " + stopwatch.Elapsed);
-                return stopwatch.Elapsed;
+                try
+                {
+                    var elapsedTime = Stopwatch.StartNew();
+                    var response = await client.GetAsync("http://" + ip);
+                    elapsedTimes.Add(elapsedTime.ElapsedMilliseconds);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error sending HTTP request to ip '{ip}', host '{hostHeader}': {ex.Message}");
+                }
+            });
+
+            if (elapsedTimes.Count > 0)
+            {
+                return elapsedTimes.Average();
+            }
+            else
+            {
+                return -1;
             }
         }
     }
